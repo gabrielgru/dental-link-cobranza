@@ -728,6 +728,12 @@
             color: var(--gray-700);
         }
         
+        .optional-description {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-top: 8px;
+        }
+        
         .toggle-switch {
             position: relative;
             width: 48px;
@@ -791,6 +797,41 @@
         [data-theme="dark"] .optional-note {
             background-color: rgba(251, 191, 36, 0.1);
             color: var(--text-secondary);
+        }
+        
+        .days-detail-toggle {
+            color: var(--gray-600);
+            font-size: 13px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            transition: var(--transition);
+            user-select: none;
+            margin-top: 12px;
+        }
+        
+        .days-detail-toggle:hover {
+            color: var(--primary-color);
+        }
+        
+        .days-detail-toggle-arrow {
+            transition: transform 0.2s ease;
+            font-size: 10px;
+        }
+        
+        .days-detail-toggle.expanded .days-detail-toggle-arrow {
+            transform: rotate(180deg);
+        }
+        
+        .days-detail-content {
+            display: none;
+            margin-top: 12px;
+            animation: slideDown 0.2s ease-out;
+        }
+        
+        .days-detail-content.visible {
+            display: block;
         }
         
         /* Process Button and Summary */
@@ -1179,39 +1220,59 @@
             </div>
         </div>
         
-        <!-- Días de Anticipación -->
-        <div class="section">
-            <h2>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="10"/>
-                    <path d="M12 6V12L16 14"/>
-                </svg>
-                Configuración de Recordatorios
-            </h2>
-            <div class="days-input-section">
-                <div class="days-input-intro">
-                    Se incluirán siempre las <strong>facturas vencidas</strong> a la fecha de ejecución.<br>
-                    Adicionalmente, es posible anticipar el aviso de <strong>facturas próximas a vencer</strong>, dentro del horizonte de días definido a continuación.
-                </div>
-                <label class="days-input-label" for="daysInput">
-                    Días de anticipación:
-                </label>
-                <div class="days-input-wrapper">
-                    <div class="number-input-container">
-                        <input type="number" id="daysInput" class="number-input" value="7" min="0" max="10" aria-label="Días de anticipación">
-                        <div class="number-controls">
-                            <button class="number-control" onclick="incrementDays()" aria-label="Aumentar días">▲</button>
-                            <button class="number-control" onclick="decrementDays()" aria-label="Disminuir días">▼</button>
-                        </div>
+        <!-- Incluir facturas próximas a vencer (Toggle Opcional) -->
+        <div class="optional-section">
+            <div class="optional-header" onclick="toggleRemindersSection()" role="button" tabindex="0" aria-expanded="false">
+                <div>
+                    <div class="optional-title">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M12 6V12L16 14"/>
+                        </svg>
+                        Incluir facturas próximas a vencer
+                        <span class="optional-badge">Opcional</span>
+                    </div>
+                    <div class="optional-description">
+                        Cuando está apagado: sólo se incluirán facturas vencidas al momento de envío.
                     </div>
                 </div>
-                <div class="days-example" id="daysExample">
-                    <strong>📅 Ejemplo:</strong> Hoy es <span id="todayDate"></span>. Con <strong>7 días</strong> de anticipación, se incluirán facturas que venzan hasta el <span id="untilDate"></span>.
-                </div>
-                <div class="days-notes">
-                    <div class="days-notes-title">Notas adicionales:</div>
-                    • Un valor de <strong>0 días</strong> incluye exclusivamente las facturas vencidas (incluyendo vencimiento el día actual).<br>
-                    • El máximo configurable es de <strong>10 días</strong> de anticipación.
+                <label class="toggle-switch">
+                    <input type="checkbox" id="includeUpcoming" aria-label="Activar recordatorios anticipados">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+            
+            <div id="remindersContent" class="optional-content">
+                <div class="days-input-section">
+                    <div class="days-input-intro">
+                        <strong>Anticipación de vencimientos:</strong><br>
+                        Seleccione la cantidad de días de anticipación:
+                        <span style="margin-left: 8px;">
+                            <span class="number-input-container" style="display: inline-block; width: 80px;">
+                                <input type="number" id="daysInput" class="number-input" value="7" min="1" max="10" aria-label="Días de anticipación">
+                                <div class="number-controls">
+                                    <button class="number-control" onclick="incrementDays()" aria-label="Aumentar días">▲</button>
+                                    <button class="number-control" onclick="decrementDays()" aria-label="Disminuir días">▼</button>
+                                </div>
+                            </span>
+                            <span style="margin-left: 8px;">días</span>
+                        </span>
+                    </div>
+                    
+                    <div class="days-detail-toggle" onclick="toggleDaysDetail()">
+                        ¿Cómo funciona? <span class="days-detail-toggle-arrow">▼</span>
+                    </div>
+                    
+                    <div id="daysDetailContent" class="days-detail-content">
+                        <div class="days-example" id="daysExample">
+                            <strong>📅 Ejemplo:</strong> Hoy es <span id="todayDate"></span>. Con <strong>7 días</strong> de anticipación, se incluirán facturas que venzan hasta el <span id="untilDate"></span>.
+                        </div>
+                        <div class="days-notes">
+                            <div class="days-notes-title">Notas adicionales:</div>
+                            • Un valor de <strong>1 día</strong> incluye facturas que vencen mañana.<br>
+                            • El máximo configurable es de <strong>10 días</strong> de anticipación.
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1318,12 +1379,12 @@
         const REQUIRED_COLUMNS_CONTACTS = ['código', 'nombre', 'email', 'teléfono', 'contacto 1', 'contacto 2'];
         
         // Theme Management
-        function initTheme() {
+        window.initTheme = function() {
             const savedTheme = localStorage.getItem('theme') || 'light';
             document.documentElement.setAttribute('data-theme', savedTheme);
         }
         
-        function toggleTheme() {
+        window.toggleTheme = function() {
             const currentTheme = document.documentElement.getAttribute('data-theme');
             const newTheme = currentTheme === 'light' ? 'dark' : 'light';
             document.documentElement.setAttribute('data-theme', newTheme);
@@ -1331,18 +1392,18 @@
         }
         
         // Initialize theme on load
-        initTheme();
+        window.initTheme();
         
         // Theme toggle keyboard support
         document.querySelector('.theme-toggle').addEventListener('keydown', (e) => {
             if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
-                toggleTheme();
+                window.toggleTheme();
             }
         });
         
         // Toggle columns visibility
-        function toggleColumns(type) {
+        window.toggleColumns = function(type) {
             const columnsDiv = type === 'facturas' ? document.getElementById('facturasColumns') : document.getElementById('contactosColumns');
             const toggle = columnsDiv.previousElementSibling.querySelector('.columns-toggle');
             
@@ -1351,6 +1412,20 @@
                 toggle.classList.remove('expanded');
             } else {
                 columnsDiv.classList.add('visible');
+                toggle.classList.add('expanded');
+            }
+        }
+        
+        // Toggle days detail visibility
+        window.toggleDaysDetail = function() {
+            const detailDiv = document.getElementById('daysDetailContent');
+            const toggle = document.querySelector('.days-detail-toggle');
+            
+            if (detailDiv.classList.contains('visible')) {
+                detailDiv.classList.remove('visible');
+                toggle.classList.remove('expanded');
+            } else {
+                detailDiv.classList.add('visible');
                 toggle.classList.add('expanded');
             }
         }
@@ -1373,6 +1448,8 @@
         const statusProgress = statusMessage.querySelector('.status-progress');
         const updateContactsCheckbox = document.getElementById('updateContacts');
         const contactsContent = document.getElementById('contactsContent');
+        const includeUpcomingCheckbox = document.getElementById('includeUpcoming');
+        const remindersContent = document.getElementById('remindersContent');
         const daysInput = document.getElementById('daysInput');
         const processSummary = document.getElementById('processSummary');
         const summaryContent = processSummary.querySelector('.summary-content');
@@ -1709,7 +1786,7 @@
             container.style.display = 'block';
         }
         
-        function downloadErrorReport(containerId) {
+        window.downloadErrorReport = function(containerId) {
             let validationResult;
             let fileName;
             
@@ -1785,7 +1862,7 @@
             }
         });
         
-        // Event listener para el checkbox
+        // Event listener para el checkbox de contactos
         updateContactsCheckbox.addEventListener('change', (e) => {
             const expanded = e.target.checked;
             contactsContent.style.display = expanded ? 'block' : 'none';
@@ -1793,6 +1870,23 @@
             if (!expanded) {
                 removeContactsFile();
             }
+        });
+        
+        // Event listener para el checkbox de recordatorios
+        includeUpcomingCheckbox.addEventListener('change', (e) => {
+            const expanded = e.target.checked;
+            remindersContent.style.display = expanded ? 'block' : 'none';
+            document.querySelector('.optional-section .optional-header').setAttribute('aria-expanded', expanded);
+            
+            if (!expanded) {
+                // Reset a 0 cuando se desactiva
+                daysInput.value = 0;
+            } else {
+                // Volver a 7 cuando se activa
+                daysInput.value = 7;
+            }
+            updateDateExample();
+            updateProcessSummary();
         });
         
         // Event listener para las strategy cards
@@ -1817,8 +1911,8 @@
         // Event listener para el input de días
         daysInput.addEventListener('input', function() {
             let value = parseInt(this.value);
-            if (isNaN(value) || value < 0) {
-                this.value = 0;
+            if (isNaN(value) || value < 1) {
+                this.value = 1;
             } else if (value > 10) {
                 this.value = 10;
             }
@@ -1844,15 +1938,15 @@
             
             // Actualizar el texto del ejemplo según los días
             const exampleDiv = document.getElementById('daysExample');
-            if (days === 0) {
+            if (days === 1) {
                 exampleDiv.innerHTML = `
-                    <strong>📅 Ejemplo:</strong> Hoy es <span>${today.toLocaleDateString('es-UY', options)}</span>. Con <strong>0 días</strong> de anticipación, solo se incluirán:
-                    <br>• Facturas que ya están vencidas
-                    <br>• Facturas que vencen hoy
+                    <strong>📅 Ejemplo:</strong> Hoy es <span>${today.toLocaleDateString('es-UY', options)}</span>. Con <strong>1 día</strong> de anticipación, se incluirán:
+                    <br>• Facturas vencidas hasta hoy
+                    <br>• Facturas que vencen mañana
                 `;
             } else {
                 exampleDiv.innerHTML = `
-                    <strong>📅 Ejemplo:</strong> Hoy es <span>${today.toLocaleDateString('es-UY', options)}</span>. Con <strong>${days} día${days > 1 ? 's' : ''}</strong> de anticipación, se incluirán facturas que venzan hasta el <span>${untilDate.toLocaleDateString('es-UY', options)}</span>.
+                    <strong>📅 Ejemplo:</strong> Hoy es <span>${today.toLocaleDateString('es-UY', options)}</span>. Con <strong>${days} días</strong> de anticipación, se incluirán facturas que venzan hasta el <span>${untilDate.toLocaleDateString('es-UY', options)}</span>.
                 `;
             }
         }
@@ -1889,7 +1983,7 @@
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M9 11l3 3L22 4"/>
                     </svg>
-                    <span><strong>Recordatorios:</strong> ${daysInput.value} días de anticipación</span>
+                    <span><strong>Recordatorios:</strong> ${includeUpcomingCheckbox.checked ? `${daysInput.value} días de anticipación` : 'Solo facturas vencidas hasta el día de hoy'}</span>
                 </div>
             `;
             
@@ -1912,7 +2006,7 @@
         updateDateExample();
         
         // Funciones para los controles de días
-        function incrementDays() {
+        window.incrementDays = function() {
             let currentValue = parseInt(daysInput.value);
             if (currentValue < 10) {
                 daysInput.value = currentValue + 1;
@@ -1921,9 +2015,9 @@
             }
         }
         
-        function decrementDays() {
+        window.decrementDays = function() {
             let currentValue = parseInt(daysInput.value);
-            if (currentValue > 0) {
+            if (currentValue > 1) {
                 daysInput.value = currentValue - 1;
                 updateDateExample();
                 updateProcessSummary();
@@ -1931,23 +2025,43 @@
         }
         
         // Toggle de la sección de contactos
-        function toggleContactsSection() {
+        window.toggleContactsSection = function() {
             updateContactsCheckbox.checked = !updateContactsCheckbox.checked;
             const expanded = updateContactsCheckbox.checked;
             contactsContent.style.display = expanded ? 'block' : 'none';
-            document.querySelector('.optional-header').setAttribute('aria-expanded', expanded);
+            const header = document.querySelectorAll('.optional-header')[1];
+            header.setAttribute('aria-expanded', expanded);
             if (!expanded) {
                 removeContactsFile();
             }
             updateProcessSummary();
         }
         
-        // Keyboard navigation for optional header
-        document.querySelector('.optional-header').addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                toggleContactsSection();
+        // Toggle de la sección de recordatorios
+        window.toggleRemindersSection = function() {
+            includeUpcomingCheckbox.checked = !includeUpcomingCheckbox.checked;
+            const expanded = includeUpcomingCheckbox.checked;
+            remindersContent.style.display = expanded ? 'block' : 'none';
+            const header = document.querySelectorAll('.optional-header')[0];
+            header.setAttribute('aria-expanded', expanded);
+            
+            if (!expanded) {
+                daysInput.value = 0;
+            } else {
+                daysInput.value = 7;
             }
+            updateDateExample();
+            updateProcessSummary();
+        }
+        
+        // Keyboard navigation for optional headers
+        document.querySelectorAll('.optional-header').forEach(header => {
+            header.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    header.click();
+                }
+            });
         });
         
         // Funciones de manejo de archivos
@@ -2059,7 +2173,7 @@
             updateProcessSummary();
         }
         
-        function removeFile() {
+        window.removeFile = function() {
             selectedFile = null;
             fileValidationResult = null;
             fileInput.value = '';
@@ -2069,7 +2183,7 @@
             updateProcessSummary();
         }
         
-        function removeContactsFile() {
+        window.removeContactsFile = function() {
             selectedContactsFile = null;
             contactsValidationResult = null;
             contactsInput.value = '';
@@ -2166,8 +2280,8 @@
             // Obtener estrategia seleccionada
             const selectedStrategy = document.querySelector('input[name="strategy"]:checked').value;
             
-            // Obtener días de anticipación
-            const diasAnticipacion = parseInt(daysInput.value);
+            // Obtener días de anticipación (0 si el toggle está desactivado)
+            const diasAnticipacion = includeUpcomingCheckbox.checked ? parseInt(daysInput.value) : 0;
             
             // Deshabilitar botón durante el procesamiento
             processBtn.disabled = true;
@@ -2215,8 +2329,13 @@
                 let successMessage = `El proceso de cobranza se ha iniciado correctamente.<br>
                     <strong>ID de proceso:</strong> ${result.processId || 'N/A'}<br>
                     <strong>Registros procesados:</strong> ${result.recordsCount || 'N/A'}<br>
-                    <strong>Estrategia:</strong> ${getStrategyName(selectedStrategy)}<br>
-                    <strong>Días anticipación:</strong> ${diasAnticipacion}`;
+                    <strong>Estrategia:</strong> ${getStrategyName(selectedStrategy)}<br>`;
+                
+                if (diasAnticipacion === 0) {
+                    successMessage += `<strong>Recordatorios:</strong> Solo facturas vencidas`;
+                } else {
+                    successMessage += `<strong>Días anticipación:</strong> ${diasAnticipacion}`;
+                }
                 
                 if (selectedContactsFile) {
                     successMessage += `<br><strong>✓</strong> Base de contactos actualizada`;
@@ -2278,6 +2397,8 @@
             processBtn.disabled = true;
             updateContactsCheckbox.checked = false;
             contactsContent.style.display = 'none';
+            includeUpcomingCheckbox.checked = false;
+            remindersContent.style.display = 'none';
             daysInput.value = 7;
             processSummary.style.display = 'none';
             statusProgress.style.display = 'none';
