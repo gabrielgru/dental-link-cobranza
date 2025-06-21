@@ -1,0 +1,2205 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dental Link - Sistema de Cobranza Automática</title>
+    <!-- SheetJS para leer Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- PapaParse para leer CSV -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            /* Light mode colors */
+            --primary-color: #3ca4d4;
+            --secondary-color: #043c94;
+            --white: #ffffff;
+            --gray-50: #fafafa;
+            --gray-100: #f5f5f5;
+            --gray-200: #e5e5e5;
+            --gray-300: #d4d4d4;
+            --gray-400: #a3a3a3;
+            --gray-500: #737373;
+            --gray-600: #525252;
+            --gray-700: #404040;
+            --gray-800: #262626;
+            --gray-900: #171717;
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --whatsapp-green: #25d366;
+            --whatsapp-dark: #075e54;
+            --border-radius: 12px;
+            --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            
+            /* Theme-aware colors */
+            --bg-primary: var(--white);
+            --bg-secondary: var(--gray-50);
+            --bg-tertiary: var(--gray-100);
+            --text-primary: var(--gray-800);
+            --text-secondary: var(--gray-600);
+            --border-color: var(--gray-200);
+            --shadow-color: rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Dark mode */
+        [data-theme="dark"] {
+            --primary-color: #5eb8e8;
+            --secondary-color: #4a8fd9;
+            --white: #ffffff;
+            --gray-50: #1a1a1a;
+            --gray-100: #262626;
+            --gray-200: #333333;
+            --gray-300: #404040;
+            --gray-400: #737373;
+            --gray-500: #8c8c8c;
+            --gray-600: #a3a3a3;
+            --gray-700: #bfbfbf;
+            --gray-800: #e5e5e5;
+            --gray-900: #f5f5f5;
+            --success: #4ade80;
+            --warning: #fbbf24;
+            --error: #f87171;
+            
+            --bg-primary: #0d0d0d;
+            --bg-secondary: #1a1a1a;
+            --bg-tertiary: #262626;
+            --text-primary: #f5f5f5;
+            --text-secondary: #bfbfbf;
+            --border-color: #404040;
+            --shadow-color: rgba(0, 0, 0, 0.3);
+        }
+        
+        /* Remove native number input arrows */
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--bg-tertiary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            padding: 20px;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: var(--bg-primary);
+            border-radius: var(--border-radius);
+            box-shadow: 0 1px 3px var(--shadow-color), 0 1px 2px var(--shadow-color);
+            padding: 40px;
+            position: relative;
+        }
+        
+        /* Theme Toggle */
+        .theme-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 56px;
+            height: 32px;
+            background-color: var(--gray-300);
+            border-radius: 16px;
+            padding: 2px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            box-shadow: inset 0 0 0 1px var(--border-color);
+        }
+        
+        .theme-toggle:hover {
+            background-color: var(--gray-400);
+        }
+        
+        .theme-toggle-slider {
+            width: 28px;
+            height: 28px;
+            background-color: var(--white);
+            border-radius: 50%;
+            transition: transform 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        [data-theme="dark"] .theme-toggle {
+            background-color: var(--primary-color);
+        }
+        
+        [data-theme="dark"] .theme-toggle:hover {
+            background-color: #4a9bc7;
+        }
+        
+        [data-theme="dark"] .theme-toggle-slider {
+            transform: translateX(24px);
+        }
+        
+        .theme-icon {
+            width: 16px;
+            height: 16px;
+            transition: opacity 0.3s ease;
+        }
+        
+        .sun-icon {
+            color: var(--gray-700);
+        }
+        
+        .moon-icon {
+            color: var(--gray-700);
+            position: absolute;
+            opacity: 0;
+        }
+        
+        [data-theme="dark"] .sun-icon {
+            opacity: 0;
+        }
+        
+        [data-theme="dark"] .moon-icon {
+            opacity: 1;
+        }
+        
+        .logo-section {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .logo {
+            height: 100px;
+            margin-bottom: 24px;
+        }
+        
+        h1 {
+            color: var(--secondary-color);
+            font-size: 28px;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        [data-theme="dark"] h1 {
+            color: var(--primary-color);
+        }
+        
+        h2 {
+            color: var(--text-primary);
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .section {
+            margin-bottom: 32px;
+        }
+        
+        .upload-zone {
+            border: 2px dashed var(--border-color);
+            border-radius: var(--border-radius);
+            padding: 32px;
+            text-align: center;
+            transition: var(--transition);
+            cursor: pointer;
+            background-color: var(--bg-secondary);
+            position: relative;
+            overflow: hidden;
+            min-height: 160px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .upload-zone:hover {
+            border-color: var(--primary-color);
+            background-color: var(--bg-tertiary);
+            transform: translateY(-2px);
+        }
+        
+        [data-theme="dark"] .upload-zone:hover {
+            background-color: var(--gray-200);
+        }
+        
+        .upload-zone.dragging {
+            border-color: var(--primary-color);
+            background-color: var(--bg-tertiary);
+            transform: scale(1.01);
+        }
+        
+        .upload-zone input[type="file"] {
+            display: none;
+        }
+        
+        .upload-icon {
+            width: 48px;
+            height: 48px;
+            margin: 0 auto 12px;
+            color: var(--gray-400);
+            transition: var(--transition);
+        }
+        
+        .upload-zone:hover .upload-icon {
+            color: var(--primary-color);
+            transform: scale(1.1);
+        }
+        
+        .upload-text {
+            color: var(--text-secondary);
+            font-size: 16px;
+            margin-bottom: 4px;
+        }
+        
+        .upload-subtext {
+            color: var(--gray-500);
+            font-size: 14px;
+        }
+        
+        .file-info {
+            display: none;
+            margin-top: 12px;
+            padding: 12px 16px;
+            background-color: #dbeafe;
+            border-radius: 8px;
+            font-size: 14px;
+            color: var(--secondary-color);
+            animation: slideDown 0.3s ease-out;
+            position: relative;
+        }
+        
+        [data-theme="dark"] .file-info {
+            background-color: rgba(94, 184, 232, 0.2);
+            color: var(--primary-color);
+        }
+        
+        .file-info.success-animation {
+            animation: successPulse 0.6s ease-out;
+        }
+        
+        @keyframes successPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        /* Validation Results */
+        .validation-results {
+            margin-top: 12px;
+            padding: 16px;
+            border-radius: 8px;
+            animation: slideDown 0.3s ease-out;
+            font-size: 14px;
+        }
+        
+        .validation-results.success {
+            background-color: #d1fae5;
+            border: 1px solid #6ee7b7;
+            color: #065f46;
+        }
+        
+        [data-theme="dark"] .validation-results.success {
+            background-color: rgba(74, 222, 128, 0.2);
+            border-color: var(--success);
+            color: var(--success);
+        }
+        
+        .validation-results.warning {
+            background-color: #fef3c7;
+            border: 1px solid #fbbf24;
+            color: #92400e;
+        }
+        
+        [data-theme="dark"] .validation-results.warning {
+            background-color: rgba(251, 191, 36, 0.2);
+            border-color: var(--warning);
+            color: var(--warning);
+        }
+        
+        .validation-results.error {
+            background-color: #fee2e2;
+            border: 1px solid #fca5a5;
+            color: #991b1b;
+        }
+        
+        [data-theme="dark"] .validation-results.error {
+            background-color: rgba(248, 113, 113, 0.2);
+            border-color: var(--error);
+            color: var(--error);
+        }
+        
+        .validation-header {
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .validation-details {
+            margin-top: 8px;
+        }
+        
+        .validation-item {
+            margin-bottom: 4px;
+            padding-left: 20px;
+            position: relative;
+        }
+        
+        .validation-item:before {
+            content: "•";
+            position: absolute;
+            left: 8px;
+        }
+        
+        .download-report-btn {
+            margin-top: 12px;
+            padding: 8px 16px;
+            background-color: var(--primary-color);
+            color: var(--white);
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        
+        .download-report-btn:hover {
+            background-color: var(--secondary-color);
+            transform: translateY(-1px);
+        }
+        
+        /* Column tags/chips */
+        .columns-info {
+            background-color: var(--bg-secondary);
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 12px;
+            animation: fadeIn 0.3s ease-out;
+            border: 1px solid var(--border-color);
+        }
+        
+        .columns-info strong {
+            color: var(--text-primary);
+            display: block;
+            margin-bottom: 12px;
+            font-size: 13px;
+        }
+        
+        .columns-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        
+        .column-tag {
+            background-color: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        
+        /* Strategy Selection Cards */
+        .strategy-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+            margin-top: 16px;
+        }
+        
+        .strategy-card {
+            border: 2px solid var(--border-color);
+            border-radius: var(--border-radius);
+            padding: 20px;
+            cursor: pointer;
+            transition: var(--transition);
+            position: relative;
+            background: var(--bg-primary);
+        }
+        
+        .strategy-card:hover {
+            border-color: var(--primary-color);
+            box-shadow: 0 4px 12px rgba(60, 164, 212, 0.15);
+            transform: translateY(-2px);
+        }
+        
+        .strategy-card.selected {
+            border-color: var(--primary-color);
+            background-color: var(--bg-secondary);
+            box-shadow: 0 4px 12px rgba(60, 164, 212, 0.15);
+        }
+        
+        [data-theme="dark"] .strategy-card.selected {
+            background-color: rgba(94, 184, 232, 0.1);
+        }
+        
+        .strategy-card input[type="radio"] {
+            position: absolute;
+            opacity: 0;
+        }
+        
+        .strategy-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+        
+        .strategy-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--gray-100);
+            color: var(--gray-600);
+            flex-shrink: 0;
+        }
+        
+        .strategy-card.selected .strategy-icon {
+            background-color: var(--primary-color);
+            color: var(--white);
+        }
+        
+        .strategy-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .strategy-description {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+        
+        .checkmark {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background-color: var(--primary-color);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            animation: checkmarkPop 0.3s ease-out;
+        }
+        
+        @keyframes checkmarkPop {
+            0% { transform: scale(0); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+        
+        .strategy-card.selected .checkmark {
+            display: flex;
+        }
+        
+        /* Days Input Section */
+        .days-input-section {
+            background-color: var(--bg-secondary);
+            border-radius: var(--border-radius);
+            padding: 20px;
+            margin-top: 16px;
+        }
+        
+        .days-input-label {
+            display: block;
+            font-size: 14px;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+        
+        .days-input-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .number-input-container {
+            position: relative;
+            width: 100px;
+        }
+        
+        .number-input {
+            width: 100%;
+            padding: 10px 40px 10px 16px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            text-align: center;
+            transition: var(--transition);
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+        }
+        
+        .number-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(60, 164, 212, 0.1);
+        }
+        
+        .number-controls {
+            position: absolute;
+            right: 4px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        
+        .number-control {
+            width: 28px;
+            height: 18px;
+            border: none;
+            background-color: var(--gray-100);
+            color: var(--gray-600);
+            cursor: pointer;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+            font-size: 14px;
+            line-height: 1;
+        }
+        
+        .number-control:hover {
+            background-color: var(--gray-200);
+        }
+        
+        .number-control:active {
+            background-color: var(--gray-300);
+        }
+        
+        .days-input-help {
+            font-size: 14px;
+            color: var(--text-secondary);
+            flex: 1;
+        }
+        
+        .days-example {
+            background-color: #e8f5e9;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 12px;
+            font-size: 13px;
+            color: var(--gray-700);
+            line-height: 1.5;
+            transition: var(--transition);
+        }
+        
+        [data-theme="dark"] .days-example {
+            background-color: rgba(74, 222, 128, 0.1);
+            color: var(--text-secondary);
+        }
+        
+        /* Optional Section */
+        .optional-section {
+            background-color: var(--bg-secondary);
+            border-radius: var(--border-radius);
+            padding: 24px;
+            margin-top: 32px;
+        }
+        
+        .optional-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        .optional-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .optional-badge {
+            background-color: var(--gray-200);
+            color: var(--gray-600);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        [data-theme="dark"] .optional-badge {
+            background-color: var(--gray-300);
+            color: var(--gray-700);
+        }
+        
+        .toggle-switch {
+            position: relative;
+            width: 48px;
+            height: 24px;
+        }
+        
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--gray-300);
+            transition: var(--transition);
+            border-radius: 24px;
+        }
+        
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 4px;
+            bottom: 4px;
+            background-color: var(--white);
+            transition: var(--transition);
+            border-radius: 50%;
+        }
+        
+        input:checked + .toggle-slider {
+            background-color: var(--primary-color);
+        }
+        
+        input:checked + .toggle-slider:before {
+            transform: translateX(24px);
+        }
+        
+        .optional-content {
+            margin-top: 20px;
+            display: none;
+            animation: slideDown 0.3s ease-out;
+        }
+        
+        .optional-note {
+            background-color: #fef3c7;
+            border-left: 4px solid var(--warning);
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            color: var(--gray-700);
+            margin-bottom: 16px;
+        }
+        
+        [data-theme="dark"] .optional-note {
+            background-color: rgba(251, 191, 36, 0.1);
+            color: var(--text-secondary);
+        }
+        
+        /* Process Button and Summary */
+        .process-section {
+            margin-top: 32px;
+        }
+        
+        .process-summary {
+            display: none;
+            background-color: var(--bg-secondary);
+            border-radius: var(--border-radius);
+            padding: 16px;
+            margin-bottom: 16px;
+            font-size: 14px;
+            animation: slideDown 0.3s ease-out;
+            border: 1px solid var(--border-color);
+        }
+        
+        .process-summary h3 {
+            font-size: 16px;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+        
+        .summary-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 4px;
+            color: var(--text-secondary);
+        }
+        
+        .summary-item strong {
+            color: var(--text-primary);
+        }
+        
+        .process-button {
+            width: 100%;
+            padding: 16px 32px;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: var(--white);
+            border: none;
+            border-radius: var(--border-radius);
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            box-shadow: 0 4px 12px rgba(4, 60, 148, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .process-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(4, 60, 148, 0.3);
+        }
+        
+        .process-button:active:not(:disabled) {
+            transform: translateY(0);
+        }
+        
+        .process-button:disabled {
+            background: var(--gray-300);
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+        
+        /* Status Messages with Progress Steps */
+        .status-message {
+            margin-top: 24px;
+            padding: 16px;
+            border-radius: var(--border-radius);
+            display: none;
+            animation: slideDown 0.3s ease-out;
+        }
+        
+        .status-message.info {
+            background-color: #dbeafe;
+            border: 1px solid #93c5fd;
+            color: var(--secondary-color);
+        }
+        
+        [data-theme="dark"] .status-message.info {
+            background-color: rgba(94, 184, 232, 0.2);
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+        
+        .status-message.success {
+            background-color: #d1fae5;
+            border: 1px solid #6ee7b7;
+            color: #065f46;
+        }
+        
+        [data-theme="dark"] .status-message.success {
+            background-color: rgba(74, 222, 128, 0.2);
+            border-color: var(--success);
+            color: var(--success);
+        }
+        
+        .status-message.error {
+            background-color: #fee2e2;
+            border: 1px solid #fca5a5;
+            color: #991b1b;
+        }
+        
+        [data-theme="dark"] .status-message.error {
+            background-color: rgba(248, 113, 113, 0.2);
+            border-color: var(--error);
+            color: var(--error);
+        }
+        
+        .status-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        
+        .status-progress {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 12px;
+        }
+        
+        .progress-step {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            color: var(--gray-500);
+        }
+        
+        .progress-step.active {
+            color: var(--primary-color);
+            font-weight: 500;
+        }
+        
+        .progress-step.completed {
+            color: var(--success);
+        }
+        
+        .progress-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--gray-300);
+            transition: var(--transition);
+        }
+        
+        .progress-step.active .progress-dot {
+            background-color: var(--primary-color);
+            animation: pulse 1.5s infinite;
+        }
+        
+        .progress-step.completed .progress-dot {
+            background-color: var(--success);
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.5); opacity: 0.5; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--gray-300);
+            border-top-color: var(--primary-color);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Responsive */
+        @media (max-width: 640px) {
+            .container {
+                padding: 24px;
+                padding-top: 60px;
+            }
+            
+            .theme-toggle {
+                top: 16px;
+                right: 16px;
+            }
+            
+            .strategy-cards {
+                grid-template-columns: 1fr;
+            }
+            
+            h1 {
+                font-size: 24px;
+            }
+            
+            .days-input-wrapper {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .columns-tags {
+                justify-content: center;
+            }
+        }
+        
+        /* Accessibility improvements */
+        .visually-hidden {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border-width: 0;
+        }
+        
+        /* Focus visible for keyboard navigation */
+        *:focus-visible {
+            outline: 2px solid var(--primary-color);
+            outline-offset: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Theme Toggle -->
+        <div class="theme-toggle" onclick="toggleTheme()" role="button" aria-label="Cambiar tema" tabindex="0">
+            <div class="theme-toggle-slider">
+                <svg class="theme-icon sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="5"/>
+                    <line x1="12" y1="1" x2="12" y2="3"/>
+                    <line x1="12" y1="21" x2="12" y2="23"/>
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                    <line x1="1" y1="12" x2="3" y2="12"/>
+                    <line x1="21" y1="12" x2="23" y2="12"/>
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                </svg>
+                <svg class="theme-icon moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                </svg>
+            </div>
+        </div>
+        
+        <div class="logo-section">
+            <img src="Logo Dental Link.png" alt="Dental Link" class="logo">
+        </div>
+        
+        <h1>Sistema de Cobranza Automática</h1>
+        
+        <!-- Archivo de Deudas -->
+        <div class="section">
+            <h2>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 11H15M9 15H15M12 3L4 8V18C4 19.1046 4.89543 20 6 20H18C19.1046 20 20 19.1046 20 18V8L12 3Z"/>
+                </svg>
+                Ficha Facturas
+            </h2>
+            <div id="fileDropZone" class="upload-zone" role="button" tabindex="0" aria-label="Zona para cargar archivo de facturas">
+                <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" aria-label="Seleccionar archivo de facturas">
+                <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M7 10L12 15L17 10M12 15V3M21 15V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V15"/>
+                </svg>
+                <div class="upload-text">Arrastra tu archivo aquí o haz clic para seleccionar</div>
+                <div class="upload-subtext">Formatos aceptados: Excel (.xlsx, .xls) o CSV</div>
+            </div>
+            <div id="fileInfo" class="file-info">
+                <strong>✓</strong> <span id="fileName"></span>
+            </div>
+            <div id="fileValidation" class="validation-results" style="display: none;"></div>
+            <div class="columns-info">
+                <strong>Columnas requeridas en el archivo:</strong>
+                <div class="columns-tags">
+                    <span class="column-tag">Código</span>
+                    <span class="column-tag">Nombre</span>
+                    <span class="column-tag">Saldo</span>
+                    <span class="column-tag">Docum</span>
+                    <span class="column-tag">Mon</span>
+                    <span class="column-tag">Vencim</span>
+                    <span class="column-tag">Referencia</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Estrategia de Envío -->
+        <div class="section">
+            <h2>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 2L11 13M22 2L15 22L11 13L2 9L22 2Z"/>
+                </svg>
+                Estrategia de Envío
+            </h2>
+            <div class="strategy-cards">
+                <label class="strategy-card" role="radio" aria-checked="true">
+                    <input type="radio" name="strategy" value="whatsapp_primero" checked aria-label="WhatsApp Prioritario">
+                    <div class="strategy-header">
+                        <div>
+                            <div class="strategy-title">WhatsApp Prioritario</div>
+                        </div>
+                    </div>
+                    <div class="strategy-description">
+                        Envía primero por WhatsApp cuando esté disponible. Si el cliente no tiene WhatsApp registrado, se enviará automáticamente por Email.
+                    </div>
+                    <div class="checkmark">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3">
+                            <path d="M20 6L9 17L4 12"/>
+                        </svg>
+                    </div>
+                </label>
+                
+                <label class="strategy-card" role="radio" aria-checked="false">
+                    <input type="radio" name="strategy" value="ambos_canales" aria-label="Ambos Canales">
+                    <div class="strategy-header">
+                        <div>
+                            <div class="strategy-title">Ambos Canales</div>
+                        </div>
+                    </div>
+                    <div class="strategy-description">
+                        Envía por WhatsApp y Email simultáneamente cuando ambos estén disponibles. Máximo alcance garantizado.
+                    </div>
+                    <div class="checkmark">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3">
+                            <path d="M20 6L9 17L4 12"/>
+                        </svg>
+                    </div>
+                </label>
+                
+                <label class="strategy-card" role="radio" aria-checked="false">
+                    <input type="radio" name="strategy" value="solo_whatsapp" aria-label="Solo WhatsApp">
+                    <div class="strategy-header">
+                        <div class="strategy-icon" style="background-color: var(--whatsapp-green);">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
+                                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="strategy-title">Solo WhatsApp</div>
+                        </div>
+                    </div>
+                    <div class="strategy-description">
+                        Envía únicamente por WhatsApp. Los clientes sin WhatsApp registrado no recibirán el recordatorio.
+                    </div>
+                    <div class="checkmark">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3">
+                            <path d="M20 6L9 17L4 12"/>
+                        </svg>
+                    </div>
+                </label>
+                
+                <label class="strategy-card" role="radio" aria-checked="false">
+                    <input type="radio" name="strategy" value="solo_email" aria-label="Solo Email">
+                    <div class="strategy-header">
+                        <div class="strategy-icon">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M3 8L12 13L21 8M5 19H19C20.1046 19 21 18.1046 21 17V7C21 5.89543 20.1046 5 19 5H5C3.89543 5 3 5.89543 3 7V17C3 18.1046 3.89543 19 5 19Z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="strategy-title">Solo Email</div>
+                        </div>
+                    </div>
+                    <div class="strategy-description">
+                        Envía únicamente por correo electrónico. Los clientes sin Email registrado no recibirán el recordatorio.
+                    </div>
+                    <div class="checkmark">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3">
+                            <path d="M20 6L9 17L4 12"/>
+                        </svg>
+                    </div>
+                </label>
+            </div>
+        </div>
+        
+        <!-- Días de Anticipación -->
+        <div class="section">
+            <h2>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M12 6V12L16 14"/>
+                </svg>
+                Configuración de Recordatorios
+            </h2>
+            <div class="days-input-section">
+                <label class="days-input-label" for="daysInput">
+                    El sistema enviará recordatorios de facturas <strong>vencidas</strong> y facturas <strong>próximas a vencer</strong>
+                </label>
+                <div class="days-input-wrapper">
+                    <div class="number-input-container">
+                        <input type="number" id="daysInput" class="number-input" value="7" min="0" max="10" aria-label="Días de anticipación">
+                        <div class="number-controls">
+                            <button class="number-control" onclick="incrementDays()" aria-label="Aumentar días">▲</button>
+                            <button class="number-control" onclick="decrementDays()" aria-label="Disminuir días">▼</button>
+                        </div>
+                    </div>
+                    <span class="days-input-help">Días de anticipación para incluir facturas próximas a vencer</span>
+                </div>
+                <div class="days-example" id="daysExample">
+                    <strong>📅 Ejemplo:</strong> Hoy es <span id="todayDate"></span>. Con <strong>7 días</strong> de anticipación, se incluirán facturas que venzan hasta el <span id="untilDate"></span>.
+                    <br><br>
+                    <strong>Nota:</strong> Si seleccionas <strong>0 días</strong>, solo se enviarán recordatorios de facturas ya vencidas y las que vencen hoy. El máximo es <strong>10 días</strong>.
+                </div>
+            </div>
+        </div>
+        
+        <!-- Base de Contactos Opcional -->
+        <div class="optional-section">
+            <div class="optional-header" onclick="toggleContactsSection()" role="button" tabindex="0" aria-expanded="false">
+                <div class="optional-title">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M16 21V19C16 17.9391 15.5786 16.9217 14.8284 16.1716C14.0783 15.4214 13.0609 15 12 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21"/>
+                        <circle cx="8.5" cy="7" r="4"/>
+                        <path d="M20 8V14M23 11H17"/>
+                    </svg>
+                    Actualizar Base de Contactos
+                    <span class="optional-badge">Opcional</span>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="updateContacts" aria-label="Activar actualización de contactos">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+            
+            <div id="contactsContent" class="optional-content">
+                <div class="optional-note">
+                    <strong>💡 Nota:</strong> Solo es necesario actualizar si tienes nuevos números de WhatsApp o Emails. El sistema utilizará automáticamente la base de datos vigente si no subes un archivo nuevo.
+                </div>
+                <div id="contactsDropZone" class="upload-zone" role="button" tabindex="0" aria-label="Zona para cargar archivo de contactos">
+                    <input type="file" id="contactsInput" accept=".xlsx,.xls,.csv" aria-label="Seleccionar archivo de contactos">
+                    <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M16 21V19C16 17.9391 15.5786 16.9217 14.8284 16.1716C14.0783 15.4214 13.0609 15 12 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21"/>
+                        <circle cx="8.5" cy="7" r="4"/>
+                        <path d="M20 8V14M23 11H17"/>
+                    </svg>
+                    <div class="upload-text">Arrastra tu archivo de contactos actualizado</div>
+                    <div class="upload-subtext">Formatos aceptados: Excel (.xlsx, .xls) o CSV</div>
+                </div>
+                <div id="contactsInfo" class="file-info">
+                    <strong>✓</strong> <span id="contactsFileName"></span>
+                    <button onclick="removeContactsFile()" style="float: right; background: none; border: none; color: var(--error); cursor: pointer; font-size: 14px;">✕ Quitar</button>
+                </div>
+                <div id="contactsValidation" class="validation-results" style="display: none;"></div>
+                <div class="columns-info">
+                    <strong>Columnas requeridas para actualizar contactos:</strong>
+                    <div class="columns-tags">
+                        <span class="column-tag">Código</span>
+                        <span class="column-tag">Nombre</span>
+                        <span class="column-tag">Email</span>
+                        <span class="column-tag">Teléfono</span>
+                        <span class="column-tag">Contacto 1</span>
+                        <span class="column-tag">Contacto 2</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="process-section">
+            <div id="processSummary" class="process-summary">
+                <h3>Resumen de tu configuración:</h3>
+                <div class="summary-content"></div>
+            </div>
+            
+            <button id="processBtn" class="process-button" disabled aria-label="Procesar cobranza">
+                Procesar Cobranza
+            </button>
+        </div>
+        
+        <div id="statusMessage" class="status-message" role="status" aria-live="polite">
+            <div class="status-title"></div>
+            <div class="status-content"></div>
+            <div class="status-progress" style="display: none;">
+                <div class="progress-step" data-step="validating">
+                    <span class="progress-dot"></span>
+                    <span>Validando</span>
+                </div>
+                <div class="progress-step" data-step="sending">
+                    <span class="progress-dot"></span>
+                    <span>Enviando</span>
+                </div>
+                <div class="progress-step" data-step="completed">
+                    <span class="progress-dot"></span>
+                    <span>Completado</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Configuración
+        const N8N_WEBHOOK_URL = 'https://gabrielgru.app.n8n.cloud/webhook/cobranza-automatica-dl';
+        
+        // Variables globales
+        let selectedFile = null;
+        let selectedContactsFile = null;
+        let fileValidationResult = null;
+        let contactsValidationResult = null;
+        
+        // Columnas requeridas
+        const REQUIRED_COLUMNS_FACTURAS = ['código', 'nombre', 'saldo', 'docum', 'mon'];
+        const REQUIRED_COLUMNS_CONTACTS = ['código', 'nombre', 'email', 'teléfono', 'contacto 1', 'contacto 2'];
+        
+        // Theme Management
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        }
+        
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+        }
+        
+        // Initialize theme on load
+        initTheme();
+        
+        // Theme toggle keyboard support
+        document.querySelector('.theme-toggle').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                toggleTheme();
+            }
+        });
+        
+        // Referencias DOM
+        const fileInput = document.getElementById('fileInput');
+        const fileDropZone = document.getElementById('fileDropZone');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileName = document.getElementById('fileName');
+        const fileValidation = document.getElementById('fileValidation');
+        const contactsInput = document.getElementById('contactsInput');
+        const contactsDropZone = document.getElementById('contactsDropZone');
+        const contactsInfo = document.getElementById('contactsInfo');
+        const contactsFileName = document.getElementById('contactsFileName');
+        const contactsValidation = document.getElementById('contactsValidation');
+        const processBtn = document.getElementById('processBtn');
+        const statusMessage = document.getElementById('statusMessage');
+        const statusTitle = statusMessage.querySelector('.status-title');
+        const statusContent = statusMessage.querySelector('.status-content');
+        const statusProgress = statusMessage.querySelector('.status-progress');
+        const updateContactsCheckbox = document.getElementById('updateContacts');
+        const contactsContent = document.getElementById('contactsContent');
+        const daysInput = document.getElementById('daysInput');
+        const processSummary = document.getElementById('processSummary');
+        const summaryContent = processSummary.querySelector('.summary-content');
+        
+        // Funciones de validación
+        function normalizeColumnName(name) {
+            return name.toLowerCase()
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "")
+                .replace(/\./g, "")
+                .replace(/\s+/g, "")
+                .trim();
+        }
+        
+        function validateEmail(email) {
+            const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return re.test(String(email).toLowerCase());
+        }
+        
+        function validateDate(dateValue) {
+            // Acepta formato DD/MM/YYYY
+            if (typeof dateValue === 'string') {
+                const dateRegex = /^\d{1,2}\/\d{1,2}\/\d{4}$/;
+                return dateRegex.test(dateValue);
+            }
+            // También acepta números de Excel (días desde 1900)
+            if (typeof dateValue === 'number' && dateValue > 0) {
+                return true;
+            }
+            return false;
+        }
+        
+        function validateCurrency(currency) {
+            const validCurrencies = ['$', 'U$S'];
+            return validCurrencies.includes(String(currency).trim());
+        }
+        
+        async function readExcelFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                        const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+                        resolve(jsonData);
+                    } catch (error) {
+                        reject(error);
+                    }
+                };
+                reader.onerror = reject;
+                reader.readAsArrayBuffer(file);
+            });
+        }
+        
+        async function readCSVFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    Papa.parse(e.target.result, {
+                        complete: (results) => {
+                            resolve(results.data);
+                        },
+                        error: reject
+                    });
+                };
+                reader.onerror = reject;
+                reader.readAsText(file);
+            });
+        }
+        
+        async function validateFacturasFile(file) {
+            const errors = [];
+            const warnings = [];
+            let data;
+            
+            try {
+                // Leer archivo según su tipo
+                if (file.name.endsWith('.csv')) {
+                    data = await readCSVFile(file);
+                } else {
+                    data = await readExcelFile(file);
+                }
+                
+                if (!data || data.length < 2) {
+                    errors.push('El archivo está vacío o no contiene datos');
+                    return { valid: false, errors, warnings };
+                }
+                
+                // Obtener headers (primera fila)
+                const headers = data[0].map(h => normalizeColumnName(String(h || '')));
+                
+                // Validar columnas requeridas
+                const missingColumns = [];
+                REQUIRED_COLUMNS_FACTURAS.forEach(col => {
+                    if (!headers.includes(normalizeColumnName(col))) {
+                        missingColumns.push(col);
+                    }
+                });
+                
+                if (missingColumns.length > 0) {
+                    errors.push(`Faltan columnas obligatorias: ${missingColumns.join(', ')}`);
+                }
+                
+                // Encontrar índices de columnas
+                const columnIndices = {};
+                REQUIRED_COLUMNS_FACTURAS.forEach(col => {
+                    const index = headers.indexOf(normalizeColumnName(col));
+                    if (index !== -1) {
+                        columnIndices[col] = index;
+                    }
+                });
+                
+                // También buscar vencim
+                const vencimIndex = headers.indexOf(normalizeColumnName('vencim'));
+                
+                // Validar datos fila por fila
+                let rowsWithoutVencim = 0;
+                let invalidCurrencies = 0;
+                let invalidSaldos = 0;
+                
+                for (let i = 1; i < Math.min(data.length, 100); i++) { // Limitar a 100 filas para no demorar
+                    const row = data[i];
+                    if (!row || row.length === 0) continue;
+                    
+                    // Validar fecha de vencimiento
+                    if (vencimIndex !== -1) {
+                        const vencim = row[vencimIndex];
+                        if (!vencim || vencim === '') {
+                            rowsWithoutVencim++;
+                        }
+                    }
+                    
+                    // Validar moneda
+                    if (columnIndices['mon'] !== undefined) {
+                        const currency = row[columnIndices['mon']];
+                        if (currency && !validateCurrency(currency)) {
+                            invalidCurrencies++;
+                        }
+                    }
+                    
+                    // Validar saldo
+                    if (columnIndices['saldo'] !== undefined) {
+                        const saldo = row[columnIndices['saldo']];
+                        if (isNaN(Number(saldo))) {
+                            invalidSaldos++;
+                        }
+                    }
+                }
+                
+                // Agregar errores y advertencias específicos
+                if (rowsWithoutVencim > 0) {
+                    errors.push(`${rowsWithoutVencim} facturas no tienen fecha de vencimiento`);
+                }
+                
+                if (invalidCurrencies > 0) {
+                    errors.push(`${invalidCurrencies} facturas tienen moneda inválida (debe ser $ o U$S)`);
+                }
+                
+                if (invalidSaldos > 0) {
+                    errors.push(`${invalidSaldos} facturas tienen saldo inválido`);
+                }
+                
+                return {
+                    valid: errors.length === 0,
+                    errors,
+                    warnings,
+                    totalRows: data.length - 1
+                };
+                
+            } catch (error) {
+                errors.push(`Error al leer el archivo: ${error.message}`);
+                return { valid: false, errors, warnings };
+            }
+        }
+        
+        async function validateContactsFile(file) {
+            const errors = [];
+            const warnings = [];
+            let data;
+            
+            try {
+                // Leer archivo según su tipo
+                if (file.name.endsWith('.csv')) {
+                    data = await readCSVFile(file);
+                } else {
+                    data = await readExcelFile(file);
+                }
+                
+                if (!data || data.length < 2) {
+                    errors.push('El archivo está vacío o no contiene datos');
+                    return { valid: false, errors, warnings };
+                }
+                
+                // Obtener headers (primera fila)
+                const headers = data[0].map(h => normalizeColumnName(String(h || '')));
+                
+                // Validar columnas requeridas
+                const missingColumns = [];
+                REQUIRED_COLUMNS_CONTACTS.forEach(col => {
+                    if (!headers.includes(normalizeColumnName(col))) {
+                        missingColumns.push(col);
+                    }
+                });
+                
+                if (missingColumns.length > 0) {
+                    errors.push(`Faltan columnas obligatorias: ${missingColumns.join(', ')}`);
+                }
+                
+                // Encontrar índice de columna email
+                const emailIndex = headers.indexOf(normalizeColumnName('email'));
+                
+                // Validar emails
+                let invalidEmails = 0;
+                const invalidEmailExamples = [];
+                
+                if (emailIndex !== -1) {
+                    for (let i = 1; i < data.length; i++) {
+                        const row = data[i];
+                        if (!row || row.length === 0) continue;
+                        
+                        const email = row[emailIndex];
+                        if (email && email !== '' && !validateEmail(email)) {
+                            invalidEmails++;
+                            if (invalidEmailExamples.length < 5) {
+                                invalidEmailExamples.push(`Fila ${i + 1}: ${email}`);
+                            }
+                        }
+                    }
+                }
+                
+                if (invalidEmails > 0) {
+                    warnings.push(`${invalidEmails} emails con formato inválido`);
+                    invalidEmailExamples.forEach(example => {
+                        warnings.push(example);
+                    });
+                    if (invalidEmails > 5) {
+                        warnings.push(`... y ${invalidEmails - 5} más`);
+                    }
+                }
+                
+                return {
+                    valid: errors.length === 0,
+                    errors,
+                    warnings,
+                    totalRows: data.length - 1
+                };
+                
+            } catch (error) {
+                errors.push(`Error al leer el archivo: ${error.message}`);
+                return { valid: false, errors, warnings };
+            }
+        }
+        
+        function showValidationResults(validationResult, containerId) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            container.style.display = 'none';
+            
+            if (!validationResult) return;
+            
+            if (validationResult.valid && validationResult.warnings.length === 0) {
+                container.className = 'validation-results success';
+                container.innerHTML = `
+                    <div class="validation-header">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 11l3 3L22 4"/>
+                        </svg>
+                        Archivo válido
+                    </div>
+                    <div>✓ ${validationResult.totalRows} registros encontrados</div>
+                `;
+            } else if (validationResult.errors.length > 0) {
+                container.className = 'validation-results error';
+                let html = `
+                    <div class="validation-header">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="15" y1="9" x2="9" y2="15"/>
+                            <line x1="9" y1="9" x2="15" y2="15"/>
+                        </svg>
+                        ${validationResult.errors.length} error${validationResult.errors.length > 1 ? 'es' : ''} encontrado${validationResult.errors.length > 1 ? 's' : ''}
+                    </div>
+                    <div class="validation-details">
+                `;
+                
+                validationResult.errors.slice(0, 5).forEach(error => {
+                    html += `<div class="validation-item">${error}</div>`;
+                });
+                
+                if (validationResult.errors.length > 5) {
+                    html += `<div class="validation-item">... y ${validationResult.errors.length - 5} errores más</div>`;
+                }
+                
+                html += '</div>';
+                
+                if (validationResult.errors.length > 1) {
+                    html += `<button class="download-report-btn" onclick="downloadErrorReport('${containerId}')">Descargar reporte de errores</button>`;
+                }
+                
+                container.innerHTML = html;
+            } else if (validationResult.warnings.length > 0) {
+                container.className = 'validation-results warning';
+                let html = `
+                    <div class="validation-header">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                            <line x1="12" y1="9" x2="12" y2="13"/>
+                            <line x1="12" y1="17" x2="12.01" y2="17"/>
+                        </svg>
+                        ${validationResult.warnings.length} advertencia${validationResult.warnings.length > 1 ? 's' : ''}
+                    </div>
+                    <div class="validation-details">
+                `;
+                
+                validationResult.warnings.slice(0, 5).forEach(warning => {
+                    html += `<div class="validation-item">${warning}</div>`;
+                });
+                
+                if (validationResult.warnings.length > 5) {
+                    html += `<div class="validation-item">... y ${validationResult.warnings.length - 5} advertencias más</div>`;
+                }
+                
+                html += '</div>';
+                
+                if (validationResult.warnings.length > 1) {
+                    html += `<button class="download-report-btn" onclick="downloadErrorReport('${containerId}')">Descargar reporte completo</button>`;
+                }
+                
+                container.innerHTML = html;
+            }
+            
+            container.style.display = 'block';
+        }
+        
+        function downloadErrorReport(containerId) {
+            let validationResult;
+            let fileName;
+            
+            if (containerId === 'fileValidation') {
+                validationResult = fileValidationResult;
+                fileName = 'reporte_errores_facturas.txt';
+            } else {
+                validationResult = contactsValidationResult;
+                fileName = 'reporte_errores_contactos.txt';
+            }
+            
+            if (!validationResult) return;
+            
+            let content = 'REPORTE DE VALIDACIÓN\n';
+            content += '=====================\n\n';
+            content += `Fecha: ${new Date().toLocaleString('es-UY')}\n\n`;
+            
+            if (validationResult.errors.length > 0) {
+                content += 'ERRORES:\n';
+                content += '--------\n';
+                validationResult.errors.forEach((error, index) => {
+                    content += `${index + 1}. ${error}\n`;
+                });
+                content += '\n';
+            }
+            
+            if (validationResult.warnings.length > 0) {
+                content += 'ADVERTENCIAS:\n';
+                content += '-------------\n';
+                validationResult.warnings.forEach((warning, index) => {
+                    content += `${index + 1}. ${warning}\n`;
+                });
+            }
+            
+            // Crear y descargar el archivo
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        }
+        
+        // Event listeners para archivo principal
+        fileInput.addEventListener('change', handleFileSelect);
+        fileDropZone.addEventListener('click', () => fileInput.click());
+        fileDropZone.addEventListener('dragover', handleDragOver);
+        fileDropZone.addEventListener('dragleave', handleDragLeave);
+        fileDropZone.addEventListener('drop', handleDrop);
+        
+        // Keyboard navigation for upload zones
+        fileDropZone.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                fileInput.click();
+            }
+        });
+        
+        // Event listeners para archivo de contactos
+        contactsInput.addEventListener('change', handleContactsSelect);
+        contactsDropZone.addEventListener('click', () => contactsInput.click());
+        contactsDropZone.addEventListener('dragover', (e) => handleDragOver(e, 'contacts'));
+        contactsDropZone.addEventListener('dragleave', (e) => handleDragLeave(e, 'contacts'));
+        contactsDropZone.addEventListener('drop', (e) => handleDrop(e, 'contacts'));
+        
+        contactsDropZone.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                contactsInput.click();
+            }
+        });
+        
+        // Event listener para el checkbox
+        updateContactsCheckbox.addEventListener('change', (e) => {
+            const expanded = e.target.checked;
+            contactsContent.style.display = expanded ? 'block' : 'none';
+            document.querySelector('.optional-header').setAttribute('aria-expanded', expanded);
+            if (!expanded) {
+                removeContactsFile();
+            }
+        });
+        
+        // Event listener para las strategy cards
+        document.querySelectorAll('.strategy-card').forEach(card => {
+            card.addEventListener('click', function() {
+                document.querySelectorAll('.strategy-card').forEach(c => {
+                    c.classList.remove('selected');
+                    c.setAttribute('aria-checked', 'false');
+                });
+                this.classList.add('selected');
+                this.setAttribute('aria-checked', 'true');
+                updateProcessSummary();
+            });
+        });
+        
+        // Inicializar primera opción como seleccionada
+        document.querySelector('.strategy-card').classList.add('selected');
+        
+        // Event listener para el botón de procesar
+        processBtn.addEventListener('click', processFile);
+        
+        // Event listener para el input de días
+        daysInput.addEventListener('input', function() {
+            let value = parseInt(this.value);
+            if (isNaN(value) || value < 0) {
+                this.value = 0;
+            } else if (value > 10) {
+                this.value = 10;
+            }
+            updateDateExample();
+            updateProcessSummary();
+        });
+        
+        // Event listeners para actualizar resumen
+        fileInput.addEventListener('change', updateProcessSummary);
+        contactsInput.addEventListener('change', updateProcessSummary);
+        updateContactsCheckbox.addEventListener('change', updateProcessSummary);
+        
+        // Función para actualizar el ejemplo de fechas
+        function updateDateExample() {
+            const days = parseInt(daysInput.value);
+            const today = new Date();
+            const untilDate = new Date(today);
+            untilDate.setDate(today.getDate() + days);
+            
+            const options = { day: 'numeric', month: 'long', year: 'numeric' };
+            document.getElementById('todayDate').textContent = today.toLocaleDateString('es-UY', options);
+            document.getElementById('untilDate').textContent = untilDate.toLocaleDateString('es-UY', options);
+            
+            // Actualizar el texto del ejemplo según los días
+            const exampleDiv = document.getElementById('daysExample');
+            if (days === 0) {
+                exampleDiv.innerHTML = `
+                    <strong>📅 Ejemplo:</strong> Hoy es <span>${today.toLocaleDateString('es-UY', options)}</span>. Con <strong>0 días</strong> de anticipación, solo se incluirán:
+                    <br>• Facturas que ya están vencidas
+                    <br>• Facturas que vencen hoy
+                    <br><br>
+                    <strong>Nota:</strong> No se incluirán facturas que venzan mañana o días posteriores.
+                `;
+            } else {
+                exampleDiv.innerHTML = `
+                    <strong>📅 Ejemplo:</strong> Hoy es <span>${today.toLocaleDateString('es-UY', options)}</span>. Con <strong>${days} día${days > 1 ? 's' : ''}</strong> de anticipación, se incluirán facturas que venzan hasta el <span>${untilDate.toLocaleDateString('es-UY', options)}</span>.
+                    <br><br>
+                    <strong>Nota:</strong> Si seleccionas <strong>0 días</strong>, solo se enviarán recordatorios de facturas ya vencidas y las que vencen hoy. El máximo es <strong>10 días</strong>.
+                `;
+            }
+        }
+        
+        // Función para actualizar el resumen del proceso
+        function updateProcessSummary() {
+            if (!selectedFile) {
+                processSummary.style.display = 'none';
+                return;
+            }
+            
+            const selectedStrategy = document.querySelector('input[name="strategy"]:checked').value;
+            const strategyNames = {
+                'whatsapp_primero': 'WhatsApp Prioritario',
+                'ambos_canales': 'Ambos Canales',
+                'solo_whatsapp': 'Solo WhatsApp',
+                'solo_email': 'Solo Email'
+            };
+            
+            let summaryHTML = `
+                <div class="summary-item">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 11l3 3L22 4"/>
+                    </svg>
+                    <span><strong>Archivo:</strong> ${selectedFile.name}</span>
+                </div>
+                <div class="summary-item">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 11l3 3L22 4"/>
+                    </svg>
+                    <span><strong>Estrategia:</strong> ${strategyNames[selectedStrategy]}</span>
+                </div>
+                <div class="summary-item">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 11l3 3L22 4"/>
+                    </svg>
+                    <span><strong>Recordatorios:</strong> ${daysInput.value} días de anticipación</span>
+                </div>
+            `;
+            
+            if (updateContactsCheckbox.checked && selectedContactsFile) {
+                summaryHTML += `
+                    <div class="summary-item">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 11l3 3L22 4"/>
+                        </svg>
+                        <span><strong>Contactos:</strong> ${selectedContactsFile.name}</span>
+                    </div>
+                `;
+            }
+            
+            summaryContent.innerHTML = summaryHTML;
+            processSummary.style.display = 'block';
+        }
+        
+        // Inicializar el ejemplo de fechas
+        updateDateExample();
+        
+        // Funciones para los controles de días
+        function incrementDays() {
+            let currentValue = parseInt(daysInput.value);
+            if (currentValue < 10) {
+                daysInput.value = currentValue + 1;
+                updateDateExample();
+                updateProcessSummary();
+            }
+        }
+        
+        function decrementDays() {
+            let currentValue = parseInt(daysInput.value);
+            if (currentValue > 0) {
+                daysInput.value = currentValue - 1;
+                updateDateExample();
+                updateProcessSummary();
+            }
+        }
+        
+        // Toggle de la sección de contactos
+        function toggleContactsSection() {
+            updateContactsCheckbox.checked = !updateContactsCheckbox.checked;
+            const expanded = updateContactsCheckbox.checked;
+            contactsContent.style.display = expanded ? 'block' : 'none';
+            document.querySelector('.optional-header').setAttribute('aria-expanded', expanded);
+            if (!expanded) {
+                removeContactsFile();
+            }
+            updateProcessSummary();
+        }
+        
+        // Keyboard navigation for optional header
+        document.querySelector('.optional-header').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                toggleContactsSection();
+            }
+        });
+        
+        // Funciones de manejo de archivos
+        async function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (file) {
+                await validateAndSetFile(file);
+            }
+        }
+        
+        async function handleContactsSelect(e) {
+            const file = e.target.files[0];
+            if (file) {
+                await validateAndSetContactsFile(file);
+            }
+        }
+        
+        function handleDragOver(e, type = 'main') {
+            e.preventDefault();
+            if (type === 'contacts') {
+                contactsDropZone.classList.add('dragging');
+            } else {
+                fileDropZone.classList.add('dragging');
+            }
+        }
+        
+        function handleDragLeave(e, type = 'main') {
+            e.preventDefault();
+            if (type === 'contacts') {
+                contactsDropZone.classList.remove('dragging');
+            } else {
+                fileDropZone.classList.remove('dragging');
+            }
+        }
+        
+        async function handleDrop(e, type = 'main') {
+            e.preventDefault();
+            
+            if (type === 'contacts') {
+                contactsDropZone.classList.remove('dragging');
+                const file = e.dataTransfer.files[0];
+                if (file) {
+                    await validateAndSetContactsFile(file);
+                }
+            } else {
+                fileDropZone.classList.remove('dragging');
+                const file = e.dataTransfer.files[0];
+                if (file) {
+                    await validateAndSetFile(file);
+                }
+            }
+        }
+        
+        async function validateAndSetFile(file) {
+            const validExtensions = ['.xlsx', '.xls', '.csv'];
+            const fileExtension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+            
+            if (!validExtensions.includes(fileExtension)) {
+                showStatus('error', 'Error', 'Por favor selecciona un archivo Excel o CSV válido.');
+                return;
+            }
+            
+            // Mostrar archivo cargado
+            selectedFile = file;
+            fileName.textContent = file.name;
+            fileInfo.style.display = 'block';
+            fileInfo.classList.add('success-animation');
+            setTimeout(() => fileInfo.classList.remove('success-animation'), 600);
+            
+            // Validar archivo
+            showStatus('info', 'Validando...', 'Analizando estructura del archivo...');
+            fileValidationResult = await validateFacturasFile(file);
+            hideStatus();
+            
+            // Mostrar resultados de validación
+            showValidationResults(fileValidationResult, 'fileValidation');
+            
+            // Actualizar estado del botón
+            updateProcessButtonState();
+            updateProcessSummary();
+        }
+        
+        async function validateAndSetContactsFile(file) {
+            const validExtensions = ['.xlsx', '.xls', '.csv'];
+            const fileExtension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+            
+            if (!validExtensions.includes(fileExtension)) {
+                showStatus('error', 'Error', 'El archivo de contactos debe ser Excel o CSV.');
+                return;
+            }
+            
+            // Mostrar archivo cargado
+            selectedContactsFile = file;
+            contactsFileName.textContent = file.name;
+            contactsInfo.style.display = 'block';
+            contactsInfo.classList.add('success-animation');
+            setTimeout(() => contactsInfo.classList.remove('success-animation'), 600);
+            
+            // Validar archivo
+            showStatus('info', 'Validando...', 'Analizando estructura del archivo...');
+            contactsValidationResult = await validateContactsFile(file);
+            hideStatus();
+            
+            // Mostrar resultados de validación
+            showValidationResults(contactsValidationResult, 'contactsValidation');
+            
+            // Actualizar estado del botón
+            updateProcessButtonState();
+            updateProcessSummary();
+        }
+        
+        function removeContactsFile() {
+            selectedContactsFile = null;
+            contactsValidationResult = null;
+            contactsInput.value = '';
+            contactsInfo.style.display = 'none';
+            contactsValidation.style.display = 'none';
+            updateProcessButtonState();
+            updateProcessSummary();
+        }
+        
+        function updateProcessButtonState() {
+            // El botón solo se habilita si:
+            // 1. Hay un archivo de facturas seleccionado
+            // 2. El archivo de facturas es válido (no tiene errores)
+            // 3. Si se seleccionó actualizar contactos, el archivo de contactos también debe ser válido
+            
+            let canProcess = false;
+            
+            if (selectedFile && fileValidationResult && fileValidationResult.valid) {
+                if (updateContactsCheckbox.checked && selectedContactsFile) {
+                    // Si se está actualizando contactos, debe ser válido
+                    canProcess = contactsValidationResult && contactsValidationResult.valid;
+                } else if (!updateContactsCheckbox.checked) {
+                    // Si no se está actualizando contactos, está OK
+                    canProcess = true;
+                }
+            }
+            
+            processBtn.disabled = !canProcess;
+        }
+        
+        // Progress animation functions
+        function updateProgress(step) {
+            const steps = statusProgress.querySelectorAll('.progress-step');
+            steps.forEach(s => {
+                s.classList.remove('active', 'completed');
+                if (s.dataset.step === step) {
+                    s.classList.add('active');
+                } else if (getStepOrder(s.dataset.step) < getStepOrder(step)) {
+                    s.classList.add('completed');
+                }
+            });
+        }
+        
+        function getStepOrder(step) {
+            const order = { 'validating': 1, 'sending': 2, 'completed': 3 };
+            return order[step] || 0;
+        }
+        
+        // Función principal de procesamiento
+        async function processFile() {
+            if (!selectedFile) return;
+            
+            // Validación para actualizar contactos sin archivo
+            if (updateContactsCheckbox.checked && !selectedContactsFile) {
+                if (!confirm('Has marcado "Actualizar Base de Contactos" pero no has cargado ningún archivo. ¿Deseas continuar usando la base de contactos vigente?')) {
+                    return;
+                }
+            }
+            
+            // Si hay advertencias en los archivos, preguntar si continuar
+            const hasWarnings = (fileValidationResult && fileValidationResult.warnings.length > 0) ||
+                              (contactsValidationResult && contactsValidationResult.warnings.length > 0);
+            
+            if (hasWarnings) {
+                let warningMessage = 'Se encontraron las siguientes advertencias:\n\n';
+                
+                if (fileValidationResult && fileValidationResult.warnings.length > 0) {
+                    warningMessage += 'Archivo de facturas:\n';
+                    fileValidationResult.warnings.slice(0, 3).forEach(w => {
+                        warningMessage += `• ${w}\n`;
+                    });
+                    if (fileValidationResult.warnings.length > 3) {
+                        warningMessage += `• ... y ${fileValidationResult.warnings.length - 3} más\n`;
+                    }
+                }
+                
+                if (contactsValidationResult && contactsValidationResult.warnings.length > 0) {
+                    warningMessage += '\nArchivo de contactos:\n';
+                    contactsValidationResult.warnings.slice(0, 3).forEach(w => {
+                        warningMessage += `• ${w}\n`;
+                    });
+                    if (contactsValidationResult.warnings.length > 3) {
+                        warningMessage += `• ... y ${contactsValidationResult.warnings.length - 3} más\n`;
+                    }
+                }
+                
+                warningMessage += '\n¿Deseas continuar de todos modos?';
+                
+                if (!confirm(warningMessage)) {
+                    return;
+                }
+            }
+            
+            // Obtener estrategia seleccionada
+            const selectedStrategy = document.querySelector('input[name="strategy"]:checked').value;
+            
+            // Obtener días de anticipación
+            const diasAnticipacion = parseInt(daysInput.value);
+            
+            // Deshabilitar botón durante el procesamiento
+            processBtn.disabled = true;
+            statusProgress.style.display = 'flex';
+            showStatus('info', 'Procesando...', 'Validando archivos...');
+            updateProgress('validating');
+            
+            // Simular validación
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            updateProgress('sending');
+            statusContent.innerHTML = 'Enviando archivos para procesamiento...';
+            
+            try {
+                // Preparar FormData
+                const formData = new FormData();
+                formData.append('file', selectedFile);
+                formData.append('estrategia_envio', selectedStrategy);
+                formData.append('dias_anticipacion_vencimiento', diasAnticipacion);
+                formData.append('timestamp', new Date().toISOString());
+                
+                // Agregar archivo de contactos si existe
+                if (selectedContactsFile) {
+                    formData.append('contactsFile', selectedContactsFile);
+                    formData.append('hasUpdatedContacts', 'true');
+                } else {
+                    formData.append('hasUpdatedContacts', 'false');
+                }
+                
+                // Enviar a N8N
+                const response = await fetch(N8N_WEBHOOK_URL, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Error del servidor: ${response.status}`);
+                }
+                
+                const result = await response.json();
+                
+                updateProgress('completed');
+                
+                // Mostrar resultado exitoso con animación
+                let successMessage = `El proceso de cobranza se ha iniciado correctamente.<br>
+                    <strong>ID de proceso:</strong> ${result.processId || 'N/A'}<br>
+                    <strong>Registros procesados:</strong> ${result.recordsCount || 'N/A'}<br>
+                    <strong>Estrategia:</strong> ${getStrategyName(selectedStrategy)}<br>
+                    <strong>Días anticipación:</strong> ${diasAnticipacion}`;
+                
+                if (selectedContactsFile) {
+                    successMessage += `<br><strong>✓</strong> Base de contactos actualizada`;
+                } else {
+                    successMessage += `<br><strong>📌</strong> Usando base de contactos vigente`;
+                }
+                
+                showStatus('success', '¡Proceso completado!', successMessage);
+                
+                // Limpiar formulario después de un tiempo
+                setTimeout(() => {
+                    resetForm();
+                }, 5000);
+                
+            } catch (error) {
+                console.error('Error:', error);
+                showStatus('error', 'Error en el procesamiento', 
+                    `Ocurrió un error al procesar el archivo: ${error.message}`
+                );
+                processBtn.disabled = false;
+                statusProgress.style.display = 'none';
+            }
+        }
+        
+        function getStrategyName(strategy) {
+            const names = {
+                'whatsapp_primero': 'WhatsApp Prioritario',
+                'ambos_canales': 'Ambos Canales',
+                'solo_whatsapp': 'Solo WhatsApp',
+                'solo_email': 'Solo Email'
+            };
+            return names[strategy] || strategy;
+        }
+        
+        // Funciones auxiliares
+        function showStatus(type, title, content) {
+            statusMessage.className = `status-message ${type}`;
+            statusMessage.style.display = 'block';
+            statusTitle.textContent = title;
+            statusContent.innerHTML = content;
+        }
+        
+        function hideStatus() {
+            statusMessage.style.display = 'none';
+            statusProgress.style.display = 'none';
+        }
+        
+        function resetForm() {
+            selectedFile = null;
+            selectedContactsFile = null;
+            fileValidationResult = null;
+            contactsValidationResult = null;
+            fileInput.value = '';
+            contactsInput.value = '';
+            fileInfo.style.display = 'none';
+            contactsInfo.style.display = 'none';
+            fileValidation.style.display = 'none';
+            contactsValidation.style.display = 'none';
+            processBtn.disabled = true;
+            updateContactsCheckbox.checked = false;
+            contactsContent.style.display = 'none';
+            daysInput.value = 7;
+            processSummary.style.display = 'none';
+            statusProgress.style.display = 'none';
+            
+            // Resetear estrategia a la primera opción
+            document.querySelector('input[name="strategy"][value="whatsapp_primero"]').checked = true;
+            document.querySelectorAll('.strategy-card').forEach(c => {
+                c.classList.remove('selected');
+                c.setAttribute('aria-checked', 'false');
+            });
+            document.querySelector('.strategy-card').classList.add('selected');
+            document.querySelector('.strategy-card').setAttribute('aria-checked', 'true');
+            
+            updateDateExample();
+            hideStatus();
+        }
+    </script>
+</body>
+</html>
