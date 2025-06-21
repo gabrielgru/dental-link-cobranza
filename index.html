@@ -409,6 +409,40 @@
             border: 1px solid var(--border-color);
         }
         
+        .columns-toggle {
+            color: var(--gray-600);
+            font-size: 13px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            transition: var(--transition);
+            user-select: none;
+        }
+        
+        .columns-toggle:hover {
+            color: var(--primary-color);
+        }
+        
+        .columns-toggle-arrow {
+            transition: transform 0.2s ease;
+            font-size: 10px;
+        }
+        
+        .columns-toggle.expanded .columns-toggle-arrow {
+            transform: rotate(180deg);
+        }
+        
+        .columns-content {
+            display: none;
+            margin-top: 12px;
+            animation: slideDown 0.2s ease-out;
+        }
+        
+        .columns-content.visible {
+            display: block;
+        }
+        
         .columns-info strong {
             color: var(--text-primary);
             display: block;
@@ -539,11 +573,19 @@
             margin-top: 16px;
         }
         
+        .days-input-intro {
+            font-size: 14px;
+            color: var(--text-primary);
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+        
         .days-input-label {
             display: block;
             font-size: 14px;
             color: var(--text-primary);
             margin-bottom: 8px;
+            font-weight: 600;
         }
         
         .days-input-wrapper {
@@ -630,6 +672,21 @@
         [data-theme="dark"] .days-example {
             background-color: rgba(74, 222, 128, 0.1);
             color: var(--text-secondary);
+        }
+        
+        .days-notes {
+            margin-top: 16px;
+            padding-left: 20px;
+            border-left: 3px solid var(--gray-300);
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+        
+        .days-notes-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: var(--text-primary);
         }
         
         /* Optional Section */
@@ -1011,18 +1068,24 @@
             </div>
             <div id="fileInfo" class="file-info">
                 <strong>✓</strong> <span id="fileName"></span>
+                <button onclick="removeFile()" style="float: right; background: none; border: none; color: var(--error); cursor: pointer; font-size: 14px;">✕ Quitar</button>
             </div>
             <div id="fileValidation" class="validation-results" style="display: none;"></div>
             <div class="columns-info">
-                <strong>Columnas requeridas en el archivo:</strong>
-                <div class="columns-tags">
-                    <span class="column-tag">Código</span>
-                    <span class="column-tag">Nombre</span>
-                    <span class="column-tag">Saldo</span>
-                    <span class="column-tag">Docum</span>
-                    <span class="column-tag">Mon</span>
-                    <span class="column-tag">Vencim</span>
-                    <span class="column-tag">Referencia</span>
+                <div class="columns-toggle" onclick="toggleColumns('facturas')">
+                    Ver columnas requeridas <span class="columns-toggle-arrow">▼</span>
+                </div>
+                <div id="facturasColumns" class="columns-content">
+                    <strong>Columnas requeridas en el archivo:</strong>
+                    <div class="columns-tags">
+                        <span class="column-tag">Código</span>
+                        <span class="column-tag">Nombre</span>
+                        <span class="column-tag">Saldo</span>
+                        <span class="column-tag">Docum</span>
+                        <span class="column-tag">Mon</span>
+                        <span class="column-tag">Vencim</span>
+                        <span class="column-tag">Referencia</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1126,8 +1189,12 @@
                 Configuración de Recordatorios
             </h2>
             <div class="days-input-section">
+                <div class="days-input-intro">
+                    Se incluirán siempre las <strong>facturas vencidas</strong> a la fecha de ejecución.<br>
+                    Adicionalmente, es posible anticipar el aviso de <strong>facturas próximas a vencer</strong>, dentro del horizonte de días definido a continuación.
+                </div>
                 <label class="days-input-label" for="daysInput">
-                    El sistema enviará recordatorios de facturas <strong>vencidas</strong> y facturas <strong>próximas a vencer</strong>
+                    Días de anticipación:
                 </label>
                 <div class="days-input-wrapper">
                     <div class="number-input-container">
@@ -1137,12 +1204,14 @@
                             <button class="number-control" onclick="decrementDays()" aria-label="Disminuir días">▼</button>
                         </div>
                     </div>
-                    <span class="days-input-help">Días de anticipación para incluir facturas próximas a vencer</span>
                 </div>
                 <div class="days-example" id="daysExample">
                     <strong>📅 Ejemplo:</strong> Hoy es <span id="todayDate"></span>. Con <strong>7 días</strong> de anticipación, se incluirán facturas que venzan hasta el <span id="untilDate"></span>.
-                    <br><br>
-                    <strong>Nota:</strong> Si seleccionas <strong>0 días</strong>, solo se enviarán recordatorios de facturas ya vencidas y las que vencen hoy. El máximo es <strong>10 días</strong>.
+                </div>
+                <div class="days-notes">
+                    <div class="days-notes-title">Notas adicionales:</div>
+                    • Un valor de <strong>0 días</strong> incluye exclusivamente las facturas vencidas (incluyendo vencimiento el día actual).<br>
+                    • El máximo configurable es de <strong>10 días</strong> de anticipación.
                 </div>
             </div>
         </div>
@@ -1185,14 +1254,19 @@
                 </div>
                 <div id="contactsValidation" class="validation-results" style="display: none;"></div>
                 <div class="columns-info">
-                    <strong>Columnas requeridas para actualizar contactos:</strong>
-                    <div class="columns-tags">
-                        <span class="column-tag">Código</span>
-                        <span class="column-tag">Nombre</span>
-                        <span class="column-tag">Email</span>
-                        <span class="column-tag">Teléfono</span>
-                        <span class="column-tag">Contacto 1</span>
-                        <span class="column-tag">Contacto 2</span>
+                    <div class="columns-toggle" onclick="toggleColumns('contactos')">
+                        Ver columnas requeridas <span class="columns-toggle-arrow">▼</span>
+                    </div>
+                    <div id="contactosColumns" class="columns-content">
+                        <strong>Columnas requeridas para actualizar contactos:</strong>
+                        <div class="columns-tags">
+                            <span class="column-tag">Código</span>
+                            <span class="column-tag">Nombre</span>
+                            <span class="column-tag">Email</span>
+                            <span class="column-tag">Teléfono</span>
+                            <span class="column-tag">Contacto 1</span>
+                            <span class="column-tag">Contacto 2</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1266,6 +1340,20 @@
                 toggleTheme();
             }
         });
+        
+        // Toggle columns visibility
+        function toggleColumns(type) {
+            const columnsDiv = type === 'facturas' ? document.getElementById('facturasColumns') : document.getElementById('contactosColumns');
+            const toggle = columnsDiv.previousElementSibling.querySelector('.columns-toggle');
+            
+            if (columnsDiv.classList.contains('visible')) {
+                columnsDiv.classList.remove('visible');
+                toggle.classList.remove('expanded');
+            } else {
+                columnsDiv.classList.add('visible');
+                toggle.classList.add('expanded');
+            }
+        }
         
         // Referencias DOM
         const fileInput = document.getElementById('fileInput');
@@ -1761,14 +1849,10 @@
                     <strong>📅 Ejemplo:</strong> Hoy es <span>${today.toLocaleDateString('es-UY', options)}</span>. Con <strong>0 días</strong> de anticipación, solo se incluirán:
                     <br>• Facturas que ya están vencidas
                     <br>• Facturas que vencen hoy
-                    <br><br>
-                    <strong>Nota:</strong> No se incluirán facturas que venzan mañana o días posteriores.
                 `;
             } else {
                 exampleDiv.innerHTML = `
                     <strong>📅 Ejemplo:</strong> Hoy es <span>${today.toLocaleDateString('es-UY', options)}</span>. Con <strong>${days} día${days > 1 ? 's' : ''}</strong> de anticipación, se incluirán facturas que venzan hasta el <span>${untilDate.toLocaleDateString('es-UY', options)}</span>.
-                    <br><br>
-                    <strong>Nota:</strong> Si seleccionas <strong>0 días</strong>, solo se enviarán recordatorios de facturas ya vencidas y las que vencen hoy. El máximo es <strong>10 días</strong>.
                 `;
             }
         }
@@ -1971,6 +2055,16 @@
             showValidationResults(contactsValidationResult, 'contactsValidation');
             
             // Actualizar estado del botón
+            updateProcessButtonState();
+            updateProcessSummary();
+        }
+        
+        function removeFile() {
+            selectedFile = null;
+            fileValidationResult = null;
+            fileInput.value = '';
+            fileInfo.style.display = 'none';
+            fileValidation.style.display = 'none';
             updateProcessButtonState();
             updateProcessSummary();
         }
